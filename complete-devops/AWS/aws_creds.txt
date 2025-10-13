@@ -1,8 +1,0 @@
-mail -> acedevops159@gmail.com
-pwd -> BhuggaReddy@786
-
-
-iam user details -
-alias -> abhi786
-username -> abhi
-pwd -> Default@123
