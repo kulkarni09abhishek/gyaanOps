@@ -95,3 +95,71 @@ Workflow -
 2. The **Docker Daemon** performs heavy lifting — builds, runs, and manages containers.
 3. The **Daemon** pulls images from the **Docker Registry** if they aren’t available locally.
 4. The **Container** runs using resources from the **Host OS kernel**.
+
+---
+
+# 🐳 Docker Command Deep Dive
+---
+
+## 🚀 1. `docker run`
+
+### 🧠 Description:
+The `docker run` command creates **and starts** a new container from a specified image.  
+It’s equivalent to performing `docker create` + `docker start`.
+
+### 🧩 Syntax:
+```bash
+docker run [OPTIONS] IMAGE [COMMAND] [ARG...]
+
+| Option   | Description                                             |
+| -------- | ------------------------------------------------------- |
+| `-d`     | Run container in **detached** mode (background).        |
+| `-p`     | Map **host port** to **container port** (`-p 8080:80`). |
+| `--name` | Assign a custom **container name**.                     |
+| `-v`     | Mount a **volume** (`-v host_path:container_path`).     |
+| `-e`     | Set **environment variables**.                          |
+| `--rm`   | Automatically remove the container when it stops.       |
+| `-it`    | Run container in **interactive terminal** mode.         |
+
+
+# Run nginx container in background and map port 8080 to 80
+docker run -d -p 8080:80 nginx
+
+# Run ubuntu container interactively with shell access
+docker run -it ubuntu /bin/bash
+
+# Run and auto-remove container after execution
+docker run --rm alpine echo "Hello, Docker!"
+
+
+## 🚀 2. `docker ps`
+
+### 🧠 Description:
+The `docker run` command creates **and starts** a new container from a specified image.  
+It’s equivalent to performing `docker create` + `docker start`.
+
+### 🧩 Syntax:
+```bash
+docker run [OPTIONS] IMAGE [COMMAND] [ARG...]
+
+| Option   | Description                                             |
+| -------- | ------------------------------------------------------- |
+| `-d`     | Run container in **detached** mode (background).        |
+| `-p`     | Map **host port** to **container port** (`-p 8080:80`). |
+| `--name` | Assign a custom **container name**.                     |
+| `-v`     | Mount a **volume** (`-v host_path:container_path`).     |
+| `-e`     | Set **environment variables**.                          |
+| `--rm`   | Automatically remove the container when it stops.       |
+| `-it`    | Run container in **interactive terminal** mode.         |
+
+
+# Run nginx container in background and map port 8080 to 80
+docker run -d -p 8080:80 nginx
+
+# Run ubuntu container interactively with shell access
+docker run -it ubuntu /bin/bash
+
+# Run and auto-remove container after execution
+docker run --rm alpine echo "Hello, Docker!"
+
+
