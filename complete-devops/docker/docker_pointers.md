@@ -825,6 +825,7 @@ docker network disconnect my_net app
 <img width="933" height="258" alt="image" src="https://github.com/user-attachments/assets/ad878ee5-de32-43f1-a6ac-c76f3b1b0bc6" />
 
 Chained WORKDIR commands –
+
 <img width="583" height="487" alt="image" src="https://github.com/user-attachments/assets/7806a684-bf86-4518-907e-04e34e6adbbf" />
 
 ## Multistage build
