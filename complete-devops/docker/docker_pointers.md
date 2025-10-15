@@ -125,8 +125,17 @@ docker run [OPTIONS] IMAGE [COMMAND] [ARG...]
 **When we run a container using docker run, it will exits immediately after a process/task inside container is completed.**
 
 ```bash
-# Run nginx container in background and map port 8080 to 80
+# Run nginx container in background and map port 8080 of host to 80 of container
 docker run -d -p 8080:80 nginx
+
+# Run custom images (by default docker hub public images and latest tag is used) 
+docker run <dockerhub_user_id>/<image_name>:<tag> 
+
+# Run ubuntu container with command (container will exit after command is completed)
+docker run ubuntu sleep 5 
+
+# To only Pull nginx image from docker hub
+docker pull nginx
 
 # Run ubuntu container interactively with shell access
 docker run -it ubuntu /bin/bash
@@ -193,6 +202,12 @@ docker attach my_container
 
 # Safely detach without stopping container (use these keys)
 Ctrl + P + Q
+
+# To get more details about container 
+docker inspect <container_name>
+
+# To get logs of container
+docker logs <container_name>
 
 ```
 
