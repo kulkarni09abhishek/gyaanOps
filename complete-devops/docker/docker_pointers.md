@@ -685,6 +685,16 @@ Generally, we use combination of both.
 
 ---
 
+First things first –
+Before installing docker (only ethernet0 is present) –
+<img width="1007" height="494" alt="image" src="https://github.com/user-attachments/assets/3a480d97-6cee-4e2c-b732-85385fcea1f0" />
+
+After installing docker (docker0 got added) –
+<img width="767" height="572" alt="image" src="https://github.com/user-attachments/assets/58e95419-c89f-462f-a46e-7487ed31e382" />
+
+**When containers want to access the internet, they will first send request to docker0 then docker0 will communicate with et0 (ethernet) and then et0 will pass the request to internet. Hence docker0 acts as a bridge network between containers and et0.**
+
+
 ## 🧩 1. Introduction
 
 Docker networking allows containers to **communicate** with each other, with the **host machine**, and with the **outside world**.  
@@ -786,4 +796,46 @@ docker run -it --network none ubuntu bash
 
 ## 🧩 6. Exposing and Publishing Ports
 <img width="452" height="488" alt="image" src="https://github.com/user-attachments/assets/5333c953-12f2-4dc0-9c85-d83c8d70cfb1" />
+
+
+🔍 Quick Reference
+```bash
+# List all networks
+docker network ls
+
+# Create a network
+docker network create my_net
+
+# Run container on custom network
+docker run -d --name web --network my_net nginx
+
+# Inspect network
+docker network inspect my_net
+
+# Connect/disconnect containers
+docker network connect my_net app
+docker network disconnect my_net app
+```
+
+
+## USER and WORKDIR 
+<img width="1033" height="1152" alt="image" src="https://github.com/user-attachments/assets/6f27bfe6-8d07-412d-87b3-b68ebcacc5fb" />
+
+<img width="1037" height="1072" alt="image" src="https://github.com/user-attachments/assets/c55f18df-2e8e-4984-a97e-705c9edfbd97" />
+<img width="933" height="258" alt="image" src="https://github.com/user-attachments/assets/ad878ee5-de32-43f1-a6ac-c76f3b1b0bc6" />
+
+Chained WORKDIR commands –
+<img width="583" height="487" alt="image" src="https://github.com/user-attachments/assets/7806a684-bf86-4518-907e-04e34e6adbbf" />
+
+## Multistage build
+It is used to reduce the image size.
+To check layerwise size –
+<img width="1125" height="289" alt="image" src="https://github.com/user-attachments/assets/88b3fc50-99b2-4f25-965f-da336ab58dda" />
+
+Multistage -
+<img width="529" height="390" alt="image" src="https://github.com/user-attachments/assets/a1543dea-d255-47c6-b844-01c60f74c634" />
+
+- Using distroless images as base image we can further reduce the image size.
+- Redhat provides ubi image which is an alternative to distroless images.
+
 
