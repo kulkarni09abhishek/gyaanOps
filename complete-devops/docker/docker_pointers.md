@@ -833,6 +833,7 @@ To check layerwise size –
 <img width="1125" height="289" alt="image" src="https://github.com/user-attachments/assets/88b3fc50-99b2-4f25-965f-da336ab58dda" />
 
 Multistage -
+
 <img width="529" height="390" alt="image" src="https://github.com/user-attachments/assets/a1543dea-d255-47c6-b844-01c60f74c634" />
 
 - Using distroless images as base image we can further reduce the image size.
