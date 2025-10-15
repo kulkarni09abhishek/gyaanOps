@@ -211,5 +211,334 @@ docker logs <container_name>
 
 ```
 
+**COPY vs ADD**
+copy will work only for source and destination files present on host.
+add has all functionalities as copy and additional functionality to download.
+<img width="936" height="133" alt="image" src="https://github.com/user-attachments/assets/415996d5-60db-431a-8183-d95e2dcc63e0" />
+<img width="936" height="133" alt="image" src="https://github.com/user-attachments/assets/caf7a785-8e6f-49e7-8d2e-013469a71367" />
+<img width="713" height="457" alt="image" src="https://github.com/user-attachments/assets/1a46a6b3-a187-4f23-9401-ff940967e9cc" />
 
+
+---
+# 🐳 Docker Storage: Bind Mounts vs Volume Mounts
+---
+
+Docker containers are **ephemeral** — meaning their data is lost when the container stops or is removed.  
+To persist data, Docker provides **mounts**, which allow data to live **outside** the container’s writable layer.
+
+There are two main types of mounts used for persistence:
+
+- **Bind Mounts**
+- **Volumes**
+
+---
+
+## 📁 1. Bind Mounts
+
+### 🔹 Concept
+Bind mounts allow you to **map a specific directory or file from your host machine** into a container.  
+This means changes made on the host are **immediately visible inside the container**, and vice versa.
+
+Bind mounts are **tightly coupled with the host system’s directory structure**.
+
+### 🔹 Use Case
+
+- When you want to **share source code** or configuration files between your local system and a container.
+- Useful during **development**.
+
+### 🔹 Example
+
+```bash
+# Run an Nginx container and bind mount a local HTML directory
+docker run -d \
+  --name nginx-bind \
+  -p 8080:80 \
+  -v /home/user/website:/usr/share/nginx/html \
+  nginx
+```
+
+## 📁 2. Volume Mounts
+
+### 🔹 Concept
+Volumes are managed entirely by Docker and stored in Docker’s internal directory (usually /var/lib/docker/volumes).
+Unlike bind mounts, you don’t need to know or manage the exact location on the host.
+
+Volumes are more portable, safer, and recommended for production.
+
+Bind mounts are **tightly coupled with the host system’s directory structure**.
+
+### 🔹 Use Case
+
+- For databases or applications where persistent, structured data storage is required.
+- Ideal when you don’t want to depend on host file paths.
+
+### 🔹 Example
+
+```bash
+# Create a named volume
+docker volume create mydata
+
+# Run a MySQL container using that volume
+docker run -d \
+  --name mysql-container \
+  -e MYSQL_ROOT_PASSWORD=root \
+  -v mydata:/var/lib/mysql \
+  mysql:latest
+```
+
+### 🔹 Useful Commands
+```bash
+# List all volumes
+docker volume ls
+
+# Remove unused volumes
+docker volume prune
+
+# Remove specific volume
+docker volume rm mydata
+
+# Remove container but keep volume
+docker rm <container-name>
+
+# Remove container and its associated volume
+docker rm -v <container-name>
+```
+
+
+
+---
+# 🐳 Docker Images
+---
+Docker uses a **layered architecture** to build, share, and run containers efficiently.  
+Each image and container in Docker is built on top of a **stack of layers**, which provides **reusability, efficiency, and portability**.
+
+<img width="1435" height="760" alt="image" src="https://github.com/user-attachments/assets/48e80698-167c-40cf-bda1-dd87238a7ef2" />
+
+## 🧩 Understanding Layers
+
+A **Docker image** is made up of **multiple read-only layers** stacked on top of each other.
+
+Each **layer** represents a **set of filesystem changes** (like adding files, installing packages, or modifying configurations).
+
+When you **run a container**, Docker adds a **read-write layer** on top of these image layers, so that the container can make temporary changes.
+
+🔹 Image Layers (Read-only)
+All layers below the topmost are immutable and shared between containers.
+
+🔹 Container Layer (Read-Write)
+When a container is started from an image, Docker adds a thin writable layer on top.
+All modifications (file creation, updates, deletions) happen in this container layer.
+
+
+## 🧩 Caching in Layers
+Docker uses build cache to avoid re-executing unchanged steps.
+
+To force a rebuild:
+
+```bash
+docker build --no-cache -t myapp .
+```
+
+### 🔹Useful Commands
+
+```bash
+# View image history (layer-wise)
+docker history <image_name>
+
+# Example
+docker history nginx:latest
+
+# Inspect image details
+docker inspect <image_name>
+
+# List all image layers
+docker image ls
+```
+
+---
+# 🚀 Docker Image Lifecycle: From Dockerfile to Docker Hub
+---
+
+This guide explains the **complete flow** of how Docker builds and publishes images:
+
+> **Dockerfile → docker build → docker tag → docker push**
+
+---
+
+## 🧩 1. Dockerfile – The Blueprint
+
+A **Dockerfile** is a text file that contains **instructions** to build a Docker image.
+
+Each line in the Dockerfile represents a **step/layer** in the image build process.
+
+### 🧠 Example: `Dockerfile`
+
+```dockerfile
+# 1️⃣ Base Image
+FROM python:3.10-slim
+
+# 2️⃣ Set Working Directory
+WORKDIR /app
+
+# 3️⃣ Copy Project Files into Container
+COPY . /app
+
+# 4️⃣ Install Dependencies
+RUN pip install -r requirements.txt
+
+# 5️⃣ Define Default Command
+CMD ["python", "app.py"]
+```
+
+## 🏗️ 2. docker build – Build the Image
+Once the Dockerfile is ready, use docker build to create an image.
+```bash
+docker build -t myapp:1.0 .
+```
+
+
+## 🏷️ 3. docker tag – Tagging the Image for Push
+Before pushing to a registry (like Docker Hub), tag the image with your repository name.
+
+```bash
+docker tag myapp:1.0 username/myapp:1.0
+```
+
+## ☁️ 4. docker push – Upload Image to Docker Hub
+Step 1: Login to Docker Hub
+```bash
+docker login
+```
+You’ll be prompted for your Docker Hub username and password/token.
+
+Step 2: Push the Image
+```bash
+docker push username/myapp:1.0
+```
+
+🔹 Output Example
+```yaml
+The push refers to repository [docker.io/username/myapp]
+d4bce7fd68c1: Pushed
+8f7eea4a74c5: Pushed
+1.0: digest: sha256:e6a6e8c82a5a... size: 1234
+```
+
+**Important points:**
+•	It is not mandatory to keep file name as Dockerfile, we can keep any name and pass it while building the image with ‘-f <file_name>’ 
+•	When we create an image then data will be stored in cache memory and if we create the same image again then cache memory will be used, and image will be created in less time. If we don’t want to use cache memory, we can pass the flag ‘--no-cache’
+•	Env vs. ARG – 
+arg will be available only while building container and not inside the container.
+env will be available inside the container as well.
+•	Use build-arg to pass ARG values to Dockerfile -
+# docker build -t <image_name:tag> -f <Dockerfile_location> --build-arg JAVA_VERSION=18-jdk 
+•	Use flag ‘--progress=plain’ to see detailed output of docker build.
+•	Pass env variables – 
+# docker run -e USER_NAME=admin -e PASSWORD=pwd --name test -d nginx
+•	Dangling images are Docker images that exist but are not tagged or referenced by any container.
+# docker images -f "dangling=true"
+•	docker run vs docker start –
+docker run – Creates and starts a new container from an image. If the container does not exist, it will create one from the specified image. 
+docker run = docker create + docker start
+start – Starts an existing stopped container. Cannot create a new container; it only works on containers that were previously created.
+
+
+
+---
+# ⚙️ Docker Environment Variables, CMD, and ENTRYPOINT
+---
+
+In Docker, **environment variables**, **CMD**, and **ENTRYPOINT** control how containers run and behave.  
+They define **configuration**, **default behavior**, and **startup commands** for your container.
+
+---
+
+## 🌍 1. Environment Variables in Docker
+
+### 🔹 What are Environment Variables?
+
+Environment variables store **configuration values** (like database URLs, API keys, or credentials)  
+that can be **passed into containers** without hardcoding them in the image.
+
+They are key–value pairs available inside the container’s runtime environment.
+
+---
+
+### 🧱 Defining Environment Variables
+
+You can define them in multiple ways:
+
+#### **a) Using `ENV` in Dockerfile**
+
+```dockerfile
+FROM node:18
+WORKDIR /app
+ENV APP_ENV=production
+ENV PORT=8080
+COPY . .
+CMD ["node", "server.js"]
+```
+
+#### **b) Using --env flag in docker run**
+```bash
+docker run -d \
+  --name myapp \
+  -e APP_ENV=development \
+  -e PORT=5000 \
+  myimage:latest
+```
+
+#### **c) Using an Environment File**
+Create a .env file:
+```ini
+APP_ENV=production
+PORT=8080
+DB_USER=admin
+DB_PASS=secret
+```
+Then pass it to the container:
+```bash
+docker run -d --env-file .env myimage:latest
+```
+
+🧠 Inspect Environment Variables
+```bash
+docker exec -it myapp env
+```
+
+
+## ⚙️ 2. CMD Instruction
+
+### 🔹 Purpose
+- **Defines default command or arguments** to execute when a container starts.  
+- It can be **overridden** at runtime using `docker run`.
+
+---
+
+### 🧱 Syntax
+
+#### **Exec Form (Recommended)**
+```dockerfile
+CMD ["executable", "param1", "param2"]
+```
+
+<img width="802" height="1365" alt="image" src="https://github.com/user-attachments/assets/dca51bf2-765e-4bca-a67a-ec6441d64289" />
+
+## 🚀 3.ENTRYPOINT Instruction
+🔹 Purpose
+- Defines a fixed executable that will always run when the container starts.
+- Used when you want your container to behave like a specific command.
+
+### 🧱 Syntax
+
+#### **Exec Form (Recommended)**
+```dockerfile
+ENTRYPOINT ["executable", "param1", "param2"]
+```
+
+<img width="745" height="1209" alt="image" src="https://github.com/user-attachments/assets/599943c6-8fb3-4c55-84ff-e0fce51fe8c1" />
+
+Generally, we use combination of both.
+
+<img width="326" height="752" alt="image" src="https://github.com/user-attachments/assets/e0be3b98-e531-44fa-8a61-26062c82efb4" />
 
