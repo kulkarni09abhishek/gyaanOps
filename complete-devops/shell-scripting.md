@@ -250,12 +250,254 @@ echo 'Path: $HOME'      # Prints: Path: $HOME
 ```
 
 
+# 🔢 Arithmetic Operators
+Arithmetic operators are used to perform **mathematical calculations** such as addition, subtraction, multiplication, division, and modulus on numeric values in shell scripts.
+
+Bash supports arithmetic in **multiple ways**, such as:
+- `expr` command  
+- `$(( ))` arithmetic expansion (recommended)  
+- `let` command  
+
+---
+
+## 🧱 Basic Arithmetic Operators
+
+| Operator | Description | Example |
+|-----------|--------------|----------|
+| `+` | Addition | `a + b` |
+| `-` | Subtraction | `a - b` |
+| `*` | Multiplication | `a * b` |
+| `/` | Division | `a / b` |
+| `%` | Modulus (remainder) | `a % b` |
+| `**` | Exponentiation (Bash 4+) | `a ** b` |
+
+---
+
+## Using $(( )) (Arithmetic Expansion) — Recommended
+```bash
+a=10
+b=3
+
+echo "Sum: $((a + b))"
+echo "Difference: $((a - b))"
+echo "Product: $((a * b))"
+echo "Division: $((a / b))"
+echo "Modulus: $((a % b))"
+echo "Power: $((a ** b))"
+```
+
+## 🧩 Using let Command
+let allows performing arithmetic operations without using $(( )).
+```bash
+let a=10
+let b=5
+let sum=a+b
+let prod=a*b
+
+echo "Sum: $sum"
+echo "Product: $prod"
+```
+
+
+# ⚙️ Conditional Statements
+
+## 🧩 Types of Conditional Statements
+1. **if statement**  
+2. **if-else statement**  
+3. **if-elif-else ladder**  
+4. **nested if statements**  
+5. **case statement**
+
+## 🔹`if` Statement
+
+### Syntax:
+```bash
+if [ condition ]
+then
+    command1
+    command2
+fi
+
+
+# Example 1
+num=10
+if [ $num -gt 5 ]
+then
+    echo "Number is greater than 5"
+fi
+
+# Example 2
+age=18
+if [ $age -ge 18 ]
+then
+    echo "Eligible to vote"
+else
+    echo "Not eligible to vote"
+fi
+
+# Example 3
+a=8
+b=12
+if [ $a -gt 5 ] && [ $b -lt 15 ]
+then
+    echo "Both conditions are true"
+fi
+
+```
+
+## 🔹File Test Conditions
+
+| Test      | Description                    | Example              |
+| --------- | ------------------------------ | -------------------- |
+| `-e file` | True if file exists            | `[ -e file.txt ]`    |
+| `-f file` | True if file is a regular file | `[ -f file.txt ]`    |
+| `-d dir`  | True if directory exists       | `[ -d /home/nancy ]` |
+| `-r file` | True if readable               | `[ -r file.txt ]`    |
+| `-w file` | True if writable               | `[ -w file.txt ]`    |
+| `-x file` | True if executable             | `[ -x script.sh ]`   |
+| `-s file` | True if file not empty         | `[ -s file.txt ]`    |
+
+
+```bash
+file="data.txt"
+if [ -f "$file" ]
+then
+    echo "File exists"
+else
+    echo "File does not exist"
+fi
+```
+
+## Case 
+```bash
+echo "Enter a number between 1 to 3:"
+read num
+
+case $num in
+    1)
+        echo "You chose One" ;;
+    2)
+        echo "You chose Two" ;;
+    3)
+        echo "You chose Three" ;;
+    *)
+        echo "Invalid choice" ;;
+esac
+```
+
+✅ Summary:
+- Use [ condition ] for simple tests, [[ ]] for advanced conditions.
+- Combine conditions with &&, ||, and !.
+- case is ideal for multi-choice logic.
+- Always end if with fi and case with esac.
 
 
 
+# 🔁 Loops in Shell Scripting
+## 🔹 2. Types of Loops in Shell
+
+1. **for loop** — iterate over a list of items  
+2. **while loop** — run while a condition is true  
+3. **until loop** — run until a condition becomes true  
+4. **nested loops** — loops inside loops  
+
+---
+
+## 🔁 `for` Loop
+
+### Syntax 1 — Iterating over a List
+```bash
+for variable in list
+do
+    command(s)
+done
+
+# Example
+for fruit in Apple Banana Mango Orange
+do
+    echo "Fruit: $fruit"
+done
+
+# Looping Over Command Output
+for item in $(ls)
+do
+    echo "File: $item"
+done
+
+# while Loop
+while [ condition ]
+do
+    command(s)
+done
+
+# Example
+count=1
+while [ $count -le 5 ]
+do
+    echo "Count: $count"
+    ((count++))
+done
+
+# Reading a File Line by Line
+while read line
+do
+    echo "Line: $line"
+done < myfile.txt
+
+```
 
 
+# ⚖️ Logical and Relational Operators
+## Relational Operators (Numeric Comparisons)
 
+Used to compare **numbers** inside `[ ]` or `(( ))`.
+
+| Operator | Meaning | Example | Description |
+|-----------|----------|----------|--------------|
+| `-eq` | Equal to | `[ $a -eq $b ]` | True if `$a` equals `$b` |
+| `-ne` | Not equal to | `[ $a -ne $b ]` | True if `$a` is not equal to `$b` |
+| `-gt` | Greater than | `[ $a -gt $b ]` | True if `$a` is greater than `$b` |
+| `-lt` | Less than | `[ $a -lt $b ]` | True if `$a` is less than `$b` |
+| `-ge` | Greater than or equal to | `[ $a -ge $b ]` | True if `$a` is greater than or equal to `$b` |
+| `-le` | Less than or equal to | `[ $a -le $b ]` | True if `$a` is less than or equal to `$b` |
+
+## Relational Operators with (( ))
+When using arithmetic expressions, you can use standard mathematical operators instead of -eq, -gt, etc.
+| Operator | Meaning                  | Example        |
+| -------- | ------------------------ | -------------- |
+| `==`     | Equal to                 | `(( a == b ))` |
+| `!=`     | Not equal to             | `(( a != b ))` |
+| `<`      | Less than                | `(( a < b ))`  |
+| `>`      | Greater than             | `(( a > b ))`  |
+| `<=`     | Less than or equal to    | `(( a <= b ))` |
+| `>=`     | Greater than or equal to | `(( a >= b ))` |
+
+## Logical Operators
+Used to combine multiple conditions in a single test.
+| Operator | Description                                   | Example                       | Meaning                    | 
+| -------- | --------------------------------------------- | ----------------------------- | -------------------------- | 
+| `-a`     | Logical AND                                   | `[ $a -gt 0 -a $b -gt 0 ]`    | True if both are true      | 
+| `-o`     | Logical OR                                    | `[ $a -eq 0 -o $b -gt 0 ]`    | True if either is true     | 
+| `!`      | Logical NOT                                   | `[ ! -f file.txt ]`           | True if condition is false | 
+| `&&`     | AND (modern, preferred in `[[ ]]` or `(( ))`) | `[[ $a -gt 5 && $b -lt 10 ]]` | True if both true          | 
+| `        |                                               | `                             | OR (modern, preferred)     | 
+
+
+```bash
+# Example
+a=8
+b=12
+
+if [[ $a -gt 5 && $b -lt 15 ]]
+then
+    echo "Both conditions are true"
+fi
+
+if [[ $a -lt 5 || $b -gt 10 ]]
+then
+    echo "At least one condition is true"
+fi
+```
 
 
 
