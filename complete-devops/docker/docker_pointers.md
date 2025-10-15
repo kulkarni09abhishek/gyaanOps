@@ -74,9 +74,7 @@ You communicate with the kernel using **shell commands**.
 - Containers are **faster**, **lighter**, and **easier to deploy** than traditional VMs.
 
 ---
-
 # 🐳 Docker Architecture & Components
-
 ---
 
 ## 🏗️ Docker Architecture Overview
@@ -96,8 +94,120 @@ Workflow -
 3. The **Daemon** pulls images from the **Docker Registry** if they aren’t available locally.
 4. The **Container** runs using resources from the **Host OS kernel**.
 
+
+# ⚙️ Control Groups (cgroups) in Docker
+
+## 🧩 1. What Are cgroups?
+
+**cgroups** (short for **Control Groups**) are a **Linux kernel feature** that Docker uses to **limit**, **isolate**, and **monitor** the **resource usage** (CPU, memory, disk I/O, network, etc.) of containers.
+
+They ensure that each container gets its **fair share of system resources**, preventing one container from consuming everything and affecting others.
+
 ---
 
+## 🧠 2. Why cgroups Are Important
+
+Docker uses **cgroups** to:
+
+| Purpose | Description |
+|----------|-------------|
+| **Resource Limiting** | Restrict how much CPU, memory, or disk I/O a container can use. |
+| **Resource Isolation** | Ensure containers don’t interfere with each other’s resources. |
+| **Resource Accounting** | Track and report resource usage for monitoring and billing. |
+| **System Stability** | Prevent a single container from crashing the entire host. |
+
+---
+
+## 🧱 3. Relationship Between Docker, cgroups, and Namespaces
+
+Docker relies on two main Linux kernel features for containerization:
+
+| Component | Function |
+|------------|-----------|
+| **Namespaces** | Provide isolation (process, network, filesystem, etc.) |
+| **cgroups** | Provide resource control (limit and monitor usage) |
+
+Together, they make containers **lightweight**, **isolated**, and **resource-controlled**.
+
+---
+
+## ⚡ 4. How Docker Uses cgroups
+
+When you run a Docker container, Docker creates a **new cgroup** for that container.
+
+This cgroup tracks and enforces limits such as:
+- **CPU quota** (how much processing power the container can use)
+- **Memory limit**
+- **Block I/O priority**
+- **Network bandwidth** (in advanced configurations)
+
+Each container gets its own directory under: /sys/fs/cgroup/
+
+## 🧰 5. Example: Setting Resource Limits Using cgroups
+```bash
+docker run -d --name cpu-demo --cpus="0.5" ubuntu:latest sleep 1000
+```
+👉 Limits the container to 50% of one CPU core.
+
+
+# 🧠 PID & Namespaces in Docker
+## 🧩 1. What Are Namespaces?
+
+**Namespaces** are a core **Linux kernel feature** that Docker uses to **isolate containers** from each other and from the host system.
+
+Each namespace provides **a separate view of system resources**, ensuring that processes inside a container only “see” their own environment — not the host or other containers.
+
+> Think of namespaces as “walls” that separate containers, while **cgroups** control how much resource they can use.
+
+---
+
+## ⚙️ 2. Types of Namespaces Used by Docker
+
+Docker uses several Linux namespaces together to create isolated containers:
+
+| Namespace | Isolates | Example |
+|------------|-----------|----------|
+| **PID** | Process IDs | Each container has its own process tree |
+| **NET** | Network interfaces, ports, routing tables | Each container has its own virtual network |
+| **MNT** | Filesystem mount points | Container sees only its own filesystem |
+| **UTS** | Hostname and domain name | Containers can have unique hostnames |
+| **IPC** | Inter-process communication | Containers have isolated shared memory |
+| **USER** | User and group IDs | Containers can map users differently than the host |
+
+---
+
+## 🧩 3. PID Namespace
+
+### 🧠 What It Does:
+The **PID namespace** provides **process isolation**.  
+Each container gets its own set of **process IDs (PIDs)**, starting from **PID 1** inside that container.
+
+So, even though the container’s main process is PID `1` inside the container, it might be PID `12345` on the host.
+
+---
+
+### 🧪 Example:
+
+#### Run a container and check its PID:
+```bash
+docker run -d --name pid-demo ubuntu sleep 1000
+```
+
+Check the PID on the host:
+```bash
+docker inspect --format '{{.State.Pid}}' pid-demo
+```
+👉 This is the real PID on the host.
+
+Now enter the container:
+```bash
+docker exec -it pid-demo bash
+ps -ef
+```
+👉 The same process appears as PID 1 (root PID) inside the container, even though it’s PID is different on the host.
+
+
+---
 # 🐳 Docker Command Deep Dive
 ---
 
@@ -322,6 +432,8 @@ Each **layer** represents a **set of filesystem changes** (like adding files, in
 
 When you **run a container**, Docker adds a **read-write layer** on top of these image layers, so that the container can make temporary changes.
 
+<img width="973" height="590" alt="image" src="https://github.com/user-attachments/assets/06080ad9-f49b-4b26-b288-2b12d5a9a67e" />
+
 🔹 Image Layers (Read-only)
 All layers below the topmost are immutable and shared between containers.
 
@@ -330,8 +442,33 @@ When a container is started from an image, Docker adds a thin writable layer on 
 All modifications (file creation, updates, deletions) happen in this container layer.
 
 
+## ⚙️ Copy-on-Write (CoW) Mechanism
+
+**Copy-on-Write (CoW)** is the technique Docker uses to optimize how files are stored and modified across layers.
+
+---
+
+### 🧠 Concept
+
+When a container modifies a file that exists in one of the lower (read-only) image layers:
+
+<img width="950" height="536" alt="image" src="https://github.com/user-attachments/assets/6f8369e7-5c70-4731-af0e-2524ed7a3af0" />
+
+1. Docker **copies that file** from the **read-only layer** into the **container’s writable layer**.  
+2. The container then **modifies the copy**, not the original file.  
+3. Other containers sharing the same base image **still see the original unmodified file**.
+
+This approach prevents unnecessary data duplication and helps **save disk space** while maintaining **image immutability**.
+
+---
+
+
+
 ## 🧩 Caching in Layers
 Docker uses build cache to avoid re-executing unchanged steps.
+
+<img width="1429" height="709" alt="image" src="https://github.com/user-attachments/assets/9a114416-b1e7-4d82-b4d0-c4633ba88d4a" />
+
 
 To force a rebuild:
 
@@ -541,4 +678,112 @@ ENTRYPOINT ["executable", "param1", "param2"]
 Generally, we use combination of both.
 
 <img width="326" height="752" alt="image" src="https://github.com/user-attachments/assets/e0be3b98-e531-44fa-8a61-26062c82efb4" />
+
+
+
+# 🌐 Docker Networking
+
+---
+
+## 🧩 1. Introduction
+
+Docker networking allows containers to **communicate** with each other, with the **host machine**, and with the **outside world**.  
+It provides **isolation**, **connectivity**, and **flexibility** in how applications are deployed.
+
+Every Docker container is attached to a **network** — either the default one created by Docker or a custom network you define.
+
+<img width="1415" height="732" alt="image" src="https://github.com/user-attachments/assets/25639568-cb82-483a-8c0e-4c720578afdc" />
+
+---
+
+## ⚙️ 2. Why Docker Networking?
+
+Docker networking is designed to:
+- Enable containers to **talk to each other**.
+- Control **how** they communicate (isolated, exposed, bridged, etc.).
+- Allow **external access** (to expose container ports to the host or internet).
+- Support **multi-container microservices** architecture.
+
+---
+
+## 🧱 3. Docker Network Architecture Overview
+
+When Docker is installed, it automatically creates several networks:
+
+| Network Name | Driver | Purpose |
+|---------------|---------|----------|
+| **bridge** | bridge | Default network for standalone containers |
+| **host** | host | Shares host’s network stack |
+| **none** | null | No network connectivity |
+| **overlay** | overlay | Used for multi-host (Swarm) networking |
+| **macvlan** | macvlan | Assigns MAC address directly to container (acts as physical device) |
+
+You can list all networks:
+```bash
+docker network ls
+```
+
+## 🧩 4. Types of Docker Networks
+
+🔹 1. Bridge Network (Default)
+- Created by Docker automatically (docker0).
+- Containers on the same bridge can communicate with each other using container names.
+- Provides NATed access to the external world through the host.
+
+```bash
+docker run -d --name web1 nginx
+docker run -d --name web2 nginx
+docker exec -it web1 ping web2
+```
+✅ web1 can reach web2 via internal IP or name.
+
+
+
+<img width="1354" height="520" alt="image" src="https://github.com/user-attachments/assets/98242d57-32ab-4a56-a1e0-728e32a8567a" />
+
+To create a custom bridge network:
+
+```bash
+docker network create my_bridge
+```
+
+Run containers on it:
+```bash
+docker run -d --name app1 --network my_bridge nginx
+docker run -d --name app2 --network my_bridge alpine ping app1
+```
+✅ Containers on the same custom bridge can resolve names automatically via Docker’s embedded DNS.
+
+<img width="1300" height="501" alt="image" src="https://github.com/user-attachments/assets/4cbee2f9-ba3d-48a6-8d07-b972ebbff8c3" />
+
+<img width="1048" height="658" alt="image" src="https://github.com/user-attachments/assets/4e901808-341e-4f0a-8a74-89a5eb623e4c" />
+
+
+🔹 2. Host Network
+- Container shares the host’s network namespace.
+- No network isolation — it uses the host IP directly.
+- Improves performance for networking-intensive apps.
+
+```bash
+docker run -d --network host nginx
+```
+
+✅ Nginx runs on host’s IP and port (e.g., http://localhost:80).
+⚠️ Not recommended for production due to lack of isolation.
+
+🔹 3. None Network
+- Provides complete network isolation.
+- The container has no external connectivity — only the loopback interface (lo).
+
+```bash
+docker run -it --network none ubuntu bash
+```
+
+## 🧠 5. Docker DNS and Name Resolution
+- Docker provides a built-in DNS server for container name resolution.
+- Containers on the same user-defined bridge or overlay network can resolve each other by name.
+
+
+## 🧩 6. Exposing and Publishing Ports
+<img width="452" height="488" alt="image" src="https://github.com/user-attachments/assets/5333c953-12f2-4dc0-9c85-d83c8d70cfb1" />
 
