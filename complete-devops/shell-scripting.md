@@ -86,7 +86,7 @@ pi=3.14  # ❌ Error: pi: is read-only variable
 | `$$`            | Process ID of current shell           |
 | `$!`            | Process ID of last background command |
 
-
+---
 
 # 🧮 Arrays
 Arrays are used to store **multiple values** in a **single variable**.  
@@ -158,6 +158,7 @@ echo "Age: ${person[age]}"
 echo "City: ${person[city]}"
 ```
 
+---
 
 # 🧵 String Operations
 
