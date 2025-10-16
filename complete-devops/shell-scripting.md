@@ -499,13 +499,290 @@ then
 fi
 ```
 
+---
+
+# ⚙️ Functions in Shell Script
+
+## 📘 What is a Function?
+
+A **function** in shell scripting is a **block of reusable code** that performs a specific task.  
+Functions make scripts modular, readable, and easier to maintain. They can be called directly by name.
+
+---
+
+## 🔹 Function Syntax
+
+### ✅ **Two common ways to define a function:**
+
+```bash
+# Method 1
+function function_name() {
+    commands
+}
+
+# Method 2 (recommended)
+function_name() {
+    commands
+}
+
+# Example
+greet() {
+    echo "Hello, $1! Welcome to Shell Scripting."
+}
+
+greet "Nancy"
+```
+## Explanation:
+- $1 → Refers to the first argument passed to the function.
+- You can pass multiple arguments like $2, $3, etc.
+
+## 🔹Function Return Values
+
+Functions can return:
+- Exit status codes (0–255) using return
+- Output text or numbers using echo
+
+Example (using return):
+```bash
+is_even() {
+    if (( $1 % 2 == 0 )); then
+        return 0     # success (true)
+    else
+        return 1     # failure (false)
+    fi
+}
+
+is_even 6
+if [ $? -eq 0 ]; then
+    echo "Number is even"
+else
+    echo "Number is odd"
+fi
+```
+## Explanation:
+- $? stores the exit status of the last executed command.
+- 0 → success/true, 1 → failure/false.
 
 
+## Variable Scope in Functions
+- By default, all variables in shell are global.
+- To make a variable local (only accessible inside the function), use the local keyword.
+
+```bash
+display_count() {
+    local count=5
+    echo "Inside function: count = $count"
+}
+
+count=10
+display_count
+echo "Outside function: count = $count"
+```
+
+Output -
+```bash
+Inside function: count = 5
+Outside function: count = 10
+```
+
+## Summary
+| Concept          | Keyword/Usage             | Description                              |
+| ---------------- | ------------------------- | ---------------------------------------- |
+| Define function  | `function_name() { ... }` | Declares a function                      |
+| Pass arguments   | `$1`, `$2`, `$3`          | Positional parameters                    |
+| Return value     | `return <code>`           | Returns exit status (0–255)              |
+| Output text      | `echo`                    | Print to stdout (can capture via `$( )`) |
+| Local variable   | `local var=value`         | Limits variable scope                    |
+| Access exit code | `$?`                      | Gets last command’s return code          |
 
 
+# 🧰 Understanding `/dev/null` and `2>&1`
+
+## 📘 1. What is `/dev/null`?
+
+`/dev/null` is a **special device file** in Linux/Unix systems that **discards all data** written to it.
+
+Think of it as a **“black hole”** for unwanted output — anything sent to `/dev/null` disappears forever.
+
+### 🧠 Meaning:
+> `/dev/null` = “Nothingness” — it accepts any input and produces no output.
+
+### Example:
+```bash
+echo "Hello World" > /dev/null
+```
+This command executes successfully but prints nothing because output is discarded.
+
+## Standard Output and Standard Error
+Every command in Linux has three standard I/O streams:
+| Stream   | Description     | File Descriptor | Default Destination |
+| -------- | --------------- | --------------- | ------------------- |
+| `stdin`  | Standard Input  | `0`             | Keyboard            |
+| `stdout` | Standard Output | `1`             | Screen              |
+| `stderr` | Standard Error  | `2`             | Screen              |
+
+```bash
+ls /home             # user  documents  downloads                                  -> stdout (1)
+ls /wrong/path       # ls: cannot access '/wrong/path': No such file or directory  -> stderr (2)
+
+# You can redirect unwanted output to /dev/null.
+ls /home > /dev/null
 
 
+# Discard Both Output and Error:
+ls /home /wrong/path > /dev/null 2>&1
+
+# ✅ Hides everything (no output, no error)
+```
+
+## Understanding 2>&1
+| Symbol | Meaning                                |
+| ------ | -------------------------------------- |
+| `>`    | Redirect output                        |
+| `2>`   | Redirect standard error (stderr)       |
+| `&1`   | Refers to file descriptor `1` (stdout) |
+
+➡️ “Send standard error (2) to the same place as standard output (1).”
+
+## Logging 
+```bash
+#!/bin/bash
+# basic_logging.sh
+
+echo "Script started at $(date)" > script.log
+echo "Running connectivity check..." >> script.log
+
+ping -c 2 google.com >> script.log 2>&1
+
+echo "Script ended at $(date)" >> script.log
+```
+
+### Logging with tee Command
+**tee allows you to display output on the screen while saving it to a file.**
+```bash
+#!/bin/bash
+# tee_logging.sh
+
+LOGFILE="system_$(date +%F).log"
+
+echo "=== System Info Log Started at $(date) ===" | tee -a "$LOGFILE"
+```
 
 
+# ⏰ Automating Scripts Using `at` Command
+Step 1: create a script 
+```bash
+#!/bin/bash
+# backup.sh
+
+echo "Backup started at $(date)" >> ~/backup.log
+tar -czf ~/Documents_backup_$(date +%F).tar.gz ~/Documents
+echo "Backup completed at $(date)" >> ~/backup.log
+```
+
+Step 2: make it executable
+```bash
+chmod +x backup.sh
+```
+
+Step 3: Schedule it using at
+```bash
+at 11:00 PM -f backup.sh
+```
+✅ This will run backup.sh automatically at 11:00 PM.
+
+List all scheduled jobs:
+```bash
+atq
+
+# Remove a specific job:
+atrm <job_id>
+```
+
+# 🕒 Automating Scripts Using `cron` (Crontab)
+
+## 📘 1. What is `cron`?
+
+`cron` is a Linux **job scheduler** that automatically runs commands or scripts **at fixed intervals** —  
+such as every minute, hour, day, week, or month.
+
+It is ideal for **repetitive automation tasks** like:
+- Regular backups  
+- Log cleanups  
+- Health checks  
+- Syncing or monitoring scripts  
+
+---
+
+## 🔹 2. The `crontab` Command
+
+`crontab` (CRON table) is the configuration file that defines **scheduled tasks**.
+
+### Basic Commands:
+
+| Command | Description |
+|----------|-------------|
+| `crontab -e` | Edit the cron jobs for the current user |
+| `crontab -l` | List your scheduled cron jobs |
+| `crontab -r` | Remove all scheduled jobs for current user |
+| `sudo crontab -e` | Edit root user's cron jobs |
+
+---
+
+## 🔹 3. Crontab File Format
+
+Each line in a crontab file represents one scheduled job, defined as:
+<img width="656" height="347" alt="image" src="https://github.com/user-attachments/assets/91f2dd1e-2976-4303-b479-05f9859b9328" />
+
+
+---
+
+## 🔹 4. Crontab Time Examples
+
+| Expression | Description |
+|-------------|--------------|
+| `* * * * *` | Every minute |
+| `0 * * * *` | Every hour |
+| `0 0 * * *` | Every day at midnight |
+| `0 6 * * *` | Every day at 6 AM |
+| `*/10 * * * *` | Every 10 minutes |
+| `0 0 * * 0` | Every Sunday at midnight |
+| `0 9-17 * * 1-5` | Every hour from 9 AM–5 PM, Mon–Fri |
+| `0 0 1 * *` | On the first day of every month |
+
+---
+
+## 🔹 5. Scheduling a Shell Script
+
+### Example Script — `backup.sh`
+```bash
+#!/bin/bash
+# backup.sh
+
+SOURCE="/home/nancy/Documents"
+DEST="/home/nancy/backup"
+LOGFILE="/home/nancy/backup/backup_$(date +%F).log"
+
+echo "==== Backup started at $(date) ====" >> "$LOGFILE"
+tar -czf "$DEST/Documents_$(date +%F).tar.gz" "$SOURCE" >> "$LOGFILE" 2>&1
+echo "==== Backup completed at $(date) ====" >> "$LOGFILE"
+```
+
+Make it executable:
+```bash
+chmod +x ~/backup.sh
+```
+
+Schedule it using crontab:
+```bash
+crontab -e
+```
+
+Add the line:
+```bash
+0 2 * * * /home/nancy/backup.sh
+```
+
+✅ This runs backup.sh daily at 2:00 AM.
 
 
