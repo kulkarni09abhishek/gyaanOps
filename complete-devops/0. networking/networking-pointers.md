@@ -21,6 +21,7 @@ The **Internet Society (ISOC)**, founded in 1992, is dedicated to keeping the In
 
 ## 🧩 Simple Client-Server Model
 A **client** (like a browser or app) sends a request to a **server**, which processes it and sends a response back.
+<img width="2440" height="988" alt="image" src="https://github.com/user-attachments/assets/1fb69aff-e28b-424e-a92d-83ef6399493c" />
 
 ---
 
@@ -147,6 +148,8 @@ Used by **switches** to forward frames in a local network.
 
 ---
 
+<img width="889" height="500" alt="image" src="https://github.com/user-attachments/assets/730aa05e-05bf-4a26-8e5f-f0e4cda33b7e" />
+
 ## 🍪 Cookies
 A **cookie** is a small piece of data stored by the browser when you first log in — used for session management.
 
@@ -181,6 +184,8 @@ You: “Hello?” → Friend: “Hey, can you hear me?” → You: “Yes, loud 
 - Layer 4 → **Segments**
 - Layer 5–7 → **Data / Messages**
 
+<img width="447" height="227" alt="image" src="https://github.com/user-attachments/assets/8da30bcc-cd99-45ae-bb7a-96791bec93a4" />
+
 ---
 
 ## 🧭 Loopback Address
@@ -192,6 +197,12 @@ You: “Hello?” → Friend: “Hey, can you hear me?” → You: “Yes, loud 
 
 **Usage:**  
 Used to test network functionality within your own computer (packets never leave the device).
+
+🧠 How It Works
+When you send a packet to the loopback address (127.0.0.1):
+	• The packet never leaves your computer.
+	• It is handled entirely by the operating system’s network stack.
+This helps you test local network functionality (like sockets, web servers, APIs) without needing an external network or internet.
 
 **Interview Tip:**  
 > A loopback address (127.0.0.1) routes traffic internally to test local network functionality.
