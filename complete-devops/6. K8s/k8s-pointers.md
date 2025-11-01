@@ -73,36 +73,87 @@ Worker nodes actually **run your application workloads** (pods, containers).
 
 ### 🔗 How They Talk (Cluster Flow)
 
+<img width="906" height="465" alt="image" src="https://github.com/user-attachments/assets/42240e29-a8df-45c3-9374-a99562d90f07" />
+
+
+# 🧠 What Happens When You Run `kubectl run mypod --image=nginx`
+---
+## ⚙️ Step-by-Step Internal Flow
+### 🟢 1. kubectl Command
+- You run:
+  ```bash
+  kubectl run mypod --image=nginx
+  ```
+- The kubectl CLI parses your command and constructs a Pod manifest (YAML) on your behalf.
+- It then sends a REST API request to the kube-apiserver, typically over HTTPS.
+
+### 🧩 2. API Server (Authentication & Validation)
+The kube-apiserver is the entry point for all cluster operations.
+It performs:
+- **Authentication**: Verifies your identity (e.g., via certificate, token, or kubeconfig context).
+- **Authorization**: Checks your access permissions (e.g., via RBAC rules).
+- **Admission Control**: Runs admission webhooks or policies that can mutate or deny the request.
+- **Schema Validation**: Ensures the Pod manifest follows the correct Kubernetes API spec.
+✅ If all checks pass → the request is accepted.
+
+### 💾 3. Persisting to etcd
+The API server writes the validated Pod object into etcd, which is Kubernetes’ distributed key-value store holding the cluster’s desired state.
+At this point, the Pod exists — but it’s in the Pending state because no node has been assigned yet.
+
+
+### 🧮 4. Scheduling the Pod
+- The kube-scheduler continuously watches the API server (via etcd) for unscheduled Pods.
+- When it finds the new Pod:
+    - It evaluates all available nodes based on:
+        - Resource availability (CPU, memory)
+        - Node selectors, affinity/anti-affinity rules
+        - Taints and tolerations
+        - Pod priorities and topology constraints
+    - It selects the most suitable node and updates the Pod’s spec.nodeName field in etcd.
+- The Pod now transitions from Pending → Scheduled.
+
+### 🖥️ 5. Kubelet on the Assigned Node
+- The kubelet (agent running on every node) watches the API server for Pods scheduled to its node.
+- Once it detects the new Pod:
+    1. It retrieves the Pod specification.
+    2. Pulls the container image (nginx in this case) from the container registry (e.g., Docker Hub), if not already cached.
+    3. Creates the Pod and its container(s) via the container runtime (e.g., containerd, CRI-O, or Docker).
+    4. Monitors the container, ensuring it stays in the Running and healthy state.
+    5. Reports Pod status back to the API server.
+
+### 🧑‍🔧 6. Controller Manager
+- The kube-controller-manager runs multiple background controllers that continuously reconcile the desired state (from etcd) with the actual state (from the cluster).
+- If a Pod crashes or a node fails, the relevant controller ensures a new Pod is created to restore the desired state.
+
+### 🔁 7. Continuous Reconciliation
+- Kubernetes operates on the principle of declarative desired state:
+**You declare what you want; Kubernetes ensures how it happens.**
+- Controllers, scheduler, and kubelets all work together in a continuous feedback loop to maintain:
+    - Pod health
+    - Correct node assignments
+    - Replica counts
+    - Desired configurations
+
+### 🧭 TL;DR (Summary Flow)
 ```mermaid
-flowchart LR
-    subgraph ControlPlane[Control Plane]
-        A[kube-apiserver]
-        B[etcd]
-        C[kube-scheduler]
-        D[kube-controller-manager]
-    end
+sequenceDiagram
+    participant U as User (kubectl)
+    participant API as kube-apiserver
+    participant ETCD as etcd
+    participant SCH as kube-scheduler
+    participant KLT as kubelet (Node)
+    participant CTR as Container Runtime
 
-    subgraph Node1[Worker Node]
-        E[kubelet]
-        F[kube-proxy]
-        G[Container Runtime]
-        H[Pods]
-    end
-
-    subgraph Node2[Worker Node]
-        I[kubelet2]
-        J[kube-proxy2]
-        K[Container Runtime2]
-        L[Pods2]
-    end
-
-    A --> B
-    C --> A
-    D --> A
-    A --> E
-    A --> I
-    E --> H
-    I --> L
-    F --> H
-    J --> L
+    U->>API: 1️⃣ Send Pod spec (kubectl run mypod --image=nginx)
+    API->>API: 2️⃣ Authenticate, Authorize, Validate
+    API->>ETCD: 3️⃣ Store Pod in desired state (Pending)
+    SCH->>ETCD: 4️⃣ Detect unscheduled Pod
+    SCH->>API: 4️⃣ Assign Pod to best Node
+    KLT->>API: 5️⃣ Detect new Pod assigned to Node
+    KLT->>CTR: 5️⃣ Pull image & start container
+    KLT->>API: 5️⃣ Report Pod status (Running)
+    API->>ETCD: 6️⃣ Update actual state
 ```
+
+
+
