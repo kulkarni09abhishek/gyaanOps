@@ -773,6 +773,110 @@ Adjusts Pod resource requests/limits (CPU, memory) automatically — more advanc
 | Verify rollback                  | `kubectl rollout history deployment/nginx-deploy` | Shows revision history                                   |
 
 
+## 🔁 Kubernetes Deployment Revisions
+🧩 What Is a Deployment Revision?
+Every time you update a Deployment’s Pod template (e.g., image, environment variables, labels, annotations), Kubernetes creates a new ReplicaSet under the hood.
+Each of those ReplicaSets represents a revision — a snapshot of your Deployment at a given point in time.
+
+Think of it as:
+Deployment revisions = Git commits for your workloads
+
+### 🧱 Example: Versions in Action
+Initial Deployment
+```bash
+kubectl create deployment web --image=nginx:1.25
+```
+- Revision 1 is created with ReplicaSet web-7c9d5cbd6b
+- kubectl rollout history deployment web → shows revision 1
+
+Update the Image
+```bash
+kubectl set image deployment/web nginx=nginx:1.26
+```
+- Creates a new ReplicaSet web-6f8b4d957b
+- Marks it as revision 2
+- Rolling update begins replacing old Pods gradually
+
+Another Update
+```bash
+kubectl set image deployment/web nginx=nginx:1.27
+```
+- Revision 3 created
+- Revision 2’s ReplicaSet still exists (scaled to 0 Pods)
+
+🧮 Checking Deployment History
+```bash
+kubectl rollout history deployment web
+```
+
+Example output:
+```arduino
+deployment.apps/web
+REVISION  CHANGE-CAUSE
+1         kubectl create --image=nginx:1.25
+2         kubectl set image --image=nginx:1.26
+3         kubectl set image --image=nginx:1.27
+```
+
+To see details of a specific revision:
+```bash
+kubectl rollout history deployment web --revision=2
+```
+
+### 🔙 Rolling Back to a Previous Revision
+If version 3 breaks production, simply roll back:
+```bash
+kubectl rollout undo deployment web --to-revision=2
+```
+
+Kubernetes will:
+- Scale up ReplicaSet for revision 2
+- Scale down revision 3
+- Mark new rollback as revision 4
+(yes, rollback itself counts as a new revision!)
+
+### ⚙️ Key Fields in Deployment Spec
+```yaml
+spec:
+  revisionHistoryLimit: 5
+  progressDeadlineSeconds: 600
+```
+| Field                     | Description                                                                           |
+| ------------------------- | ------------------------------------------------------------------------------------- |
+| `revisionHistoryLimit`    | Number of old ReplicaSets to retain (default 10). Helps keep history without clutter. |
+| `progressDeadlineSeconds` | Time to wait before marking rollout as failed.                                        |
+
+
+### 🧭 How Revisions Interact with Rollouts
+
+| Event                  | What Happens                                   |
+| ---------------------- | ---------------------------------------------- |
+| New Deployment applied | New ReplicaSet (revision +1) created           |
+| Rollout fails          | Deployment paused, revision unchanged          |
+| Rollout undone         | Old ReplicaSet scaled up, becomes new revision |
+| Revision limit reached | Oldest ReplicaSets are garbage collected       |
+
+### 🧰 Commands Cheat Sheet
+| Command                                               | Purpose                                   |
+| ----------------------------------------------------- | ----------------------------------------- |
+| `kubectl rollout status deployment/web`               | Watch rollout progress                    |
+| `kubectl rollout history deployment/web`              | View all revisions                        |
+| `kubectl rollout undo deployment/web`                 | Roll back to last version                 |
+| `kubectl rollout undo deployment/web --to-revision=N` | Roll back to specific revision            |
+| `kubectl rollout restart deployment/web`              | Trigger new rollout (same spec, new Pods) |
+
+
+kubectl rollout restart => it restarts all Pods in the Deployment — without changing anything in the manifest.
+**“Hey, recreate my Pods with the exact same spec — I just need them refreshed.”**
+
+
+
+
+
+
+
+
+
 
 
 
