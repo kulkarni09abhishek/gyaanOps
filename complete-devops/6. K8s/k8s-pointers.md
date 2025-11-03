@@ -156,6 +156,534 @@ sequenceDiagram
 ```
 
 
+# 🧭 Kubernetes Context, Namespace, Cluster & Kubeconfig
+---
+
+## ⚙️ The Big Picture
+
+Whenever you run a command like:
+
+```bash
+kubectl get pods
+```
+Your kubectl CLI needs to know 4 things:
+| Thing         | Question It Answers                                                 |
+| ------------- | ------------------------------------------------------------------- |
+| **Cluster**   | “Which Kubernetes API server am I talking to?”                      |
+| **User**      | “Who am I? (credentials/cert/key/token)”                            |
+| **Namespace** | “Inside which logical space (team/project)?”                        |
+| **Context**   | “Which combo of cluster + user + namespace should I use right now?” |
+
+All of these are stored in a single file:
+👉 ~/.kube/config (a.k.a. kubeconfig)
+
+## 📁 kubeconfig File Structure
+A kubeconfig file typically looks like this:
+```yaml
+apiVersion: v1
+kind: Config
+clusters:
+  - name: dev-cluster
+    cluster:
+      server: https://192.168.49.2:8443
+      certificate-authority: /home/abhi/.minikube/ca.crt
+
+users:
+  - name: dev-user
+    user:
+      client-certificate: /home/abhi/.minikube/profiles/minikube/client.crt
+      client-key: /home/abhi/.minikube/profiles/minikube/client.key
+
+contexts:
+  - name: dev-context
+    context:
+      cluster: dev-cluster
+      user: dev-user
+      namespace: dev-team
+
+current-context: dev-context
+```
+
+🔍 Breakdown
+| Section             | Purpose                                                                                          |
+| ------------------- | ------------------------------------------------------------------------------------------------ |
+| **clusters**        | Defines all known clusters your kubeconfig can connect to. Each has an API server URL & CA cert. |
+| **users**           | Authentication info for identities allowed to connect (certs, tokens, etc.)                      |
+| **contexts**        | Each context binds a specific **cluster**, **user**, and optional **namespace** together.        |
+| **current-context** | The default context used when you run `kubectl` commands.                                        |
+
+## 🧠 What Is a Context?
+A context is like a profile in your kubeconfig.
+
+It tells kubectl:
+**“Use this cluster, with this user, and this namespace.”**
+Example
+| Context | Cluster | User | Namespace |
+|----------|----------|-------------|
+| dev-context | dev-cluster | dev-user | dev-team |
+| prod-context | prod-cluster | prod-admin | prod |
+
+## 🧩 Context vs Namespace vs Cluster — Side-by-Side
+| Concept       | Description                                                              | Scope                          | Example                          |
+| ------------- | ------------------------------------------------------------------------ | ------------------------------ | -------------------------------- |
+| **Cluster**   | A physical or virtual Kubernetes environment (API server + etcd + nodes) | Whole Kubernetes installation  | `dev-cluster`, `prod-cluster`    |
+| **Namespace** | Logical isolation *inside* a cluster                                     | Subdivision of cluster         | `default`, `dev-team`, `staging` |
+| **Context**   | A local kubeconfig entry linking cluster + user + namespace              | Local to your `kubectl` config | `dev-context`, `prod-context`    |
+
+So:
+- The cluster lives on your infrastructure.
+- The namespace lives inside the cluster.
+- The context lives on your machine in kubeconfig.
+
+
+## 🧭 Commands Cheat Sheet
+```bash
+kubectl config current-context          # View current context
+kubectl config get-contexts             # List all contexts
+kubectl config use-context dev-context  # Switch context
+kubectl config view                     # View config details
+kubectl config set-context --current --namespace=dev-team  # Set namespace for current context
+kubectl config view --minify | grep namespace  # Verify current context + namespace
+```
+
+## 📊 Example Visualization
+```less
+Kubeconfig
+│
+├── Context: dev-context
+│     ├── Cluster: dev-cluster (https://192.168.49.2:8443)
+│     ├── User: dev-user (certs)
+│     └── Namespace: dev-team
+│
+└── Context: prod-context
+      ├── Cluster: prod-cluster (https://prod-api.mycluster.com)
+      ├── User: prod-admin (token)
+      └── Namespace: prod
+```
+
+## 💡 Real-World Analogy
+| Term           | Analogy                                                             |
+| -------------- | ------------------------------------------------------------------- |
+| **Cluster**    | A *building* (where people work)                                    |
+| **Namespace**  | A *department* inside the building                                  |
+| **User**       | A *person* with an access card                                      |
+| **Context**    | The *badge setting* that says which building + department you’re in |
+| **kubeconfig** | The *directory of all badges and their permissions*                 |
+
+## 🧩 Pro Tip — Multiple Clusters, One File
+You can merge multiple cluster configs into one kubeconfig:
+```bash
+export KUBECONFIG=~/.kube/config:/path/to/another/config
+kubectl config view --merge --flatten > ~/.kube/config
+```
+This merges everything cleanly, so you can switch between contexts easily.
+
+
+# 🔐 Kubernetes Authentication & API Server Workflow
+---
+## 🧭 What Happens When You Run a `kubectl` Command
+Let’s take a simple example:
+```bash
+kubectl get pods
+```
+Behind the scenes, this innocent-looking command triggers a full-fledged chain of communication between your laptop and the cluster.
+## ⚙️ Step-by-Step Workflow
+1️⃣ kubectl Reads kubeconfig
+Looks for your active context (current-context).
+Extracts:
+- Cluster endpoint (API server URL)
+- Authentication method (user token, certs, etc.)
+- Namespace (if specified)
+
+2️⃣ HTTPS Request to API Server
+kubectl sends a REST API call (e.g. GET /api/v1/namespaces/default/pods)
+The request includes:
+  - Bearer token / Client certificate / OIDC token
+  - Namespace and resource info
+  - Command verb (GET, POST, PATCH, DELETE)
+
+3️⃣ API Server Authentication
+The API Server validates who you are.
+Supported auth mechanisms:
+| Auth Type                       | Description                                                         |
+| ------------------------------- | ------------------------------------------------------------------- |
+| **Client Certificates**         | Used by `admin` or `kubelet`. Defined under `users:` in kubeconfig. |
+| **Bearer Tokens**               | Static or ServiceAccount tokens stored in Secrets.                  |
+| **OpenID Connect (OIDC)**       | External identity provider (e.g., Google, Azure AD).                |
+| **Webhook Token Authenticator** | Custom external auth service.                                       |
+| **Bootstrap Tokens**            | Temporary tokens used for cluster joining.                          |
+📘 The API server verifies the token or certificate using its internal auth plugins or external services.
+
+4️⃣ Authorization — “Can You Do It?”
+Once authenticated, the API server checks what you’re allowed to do.
+Common mechanisms:
+| Mode                                      | Description                                                        |
+| ----------------------------------------- | ------------------------------------------------------------------ |
+| **RBAC (Role-Based Access Control)**      | Grants permissions to users/groups based on Roles or ClusterRoles. |
+| **ABAC (Attribute-Based Access Control)** | Legacy, JSON-based access control (rare now).                      |
+| **Webhook Authorization**                 | Delegates access decisions to an external service.                 |
+| **Node Authorization**                    | Special rules for kubelets.                                        |
+
+Example RBAC check:
+Can user dev-user perform list on pods in namespace dev-team?
+If yes → continue
+If no → 403 Forbidden
+
+5️⃣ Admission Control — “Should We Mutate or Validate It?”
+Admission controllers act like gatekeepers:
+They can mutate (auto-inject sidecars, labels)
+Or validate (reject invalid manifests)
+Examples:
+| Admission Controller         | Purpose                                           |
+| ---------------------------- | ------------------------------------------------- |
+| `NamespaceLifecycle`         | Prevents creating resources in deleted namespaces |
+| `LimitRanger`                | Enforces CPU/memory limits                        |
+| `MutatingAdmissionWebhook`   | Lets you modify objects before storing            |
+| `ValidatingAdmissionWebhook` | Lets you validate custom policies                 |
+
+6️⃣ API Server Writes to etcd
+If the request is valid and authorized:
+The API server serializes the object (e.g. Pod spec)
+Stores it in etcd, the cluster’s distributed key-value database
+📦 etcd = the source of truth for the entire cluster state.
+
+7️⃣ Controllers React
+Controllers continuously watch the API server for changes:
+Deployment Controller notices a new Deployment → creates ReplicaSets
+ReplicaSet Controller notices missing Pods → creates Pods
+Scheduler finds a node → assigns it to the Pod
+Kubelet on that node pulls images & starts containers
+The loop continues until the desired state = actual state ✅
+
+
+# ☸️ Kubernetes Core Objects — Pods, ReplicaSets, Deployments & Namespaces
+---
+
+## 🧱 1. Namespace
+
+### 💡 What is a Namespace?
+
+- A **Namespace** is a *logical isolation* layer within a Kubernetes cluster.  
+- Think of it as a *virtual cluster* inside your physical cluster.
+- Namespaces help **organize**, **isolate**, and **control access** to resources.
+
+---
+
+### 🧩 Why Use Namespaces?
+
+| Use Case | Description |
+|-----------|--------------|
+| Multi-tenant environments | Separate environments for different teams or projects |
+| Access control | Apply RBAC permissions per namespace |
+| Resource quotas | Limit CPU, memory, and object counts within a namespace |
+| Network isolation | Combine with NetworkPolicies to restrict cross-namespace communication |
+
+---
+
+### 🧾 Example: Create a Namespace
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev-team
+```
+Apply it:
+```bash
+kubectl apply -f namespace.yaml
+```
+
+## 🧩 2. Pod — The Smallest Deployable Unit
+🧠 Concept
+- A Pod is the basic execution unit in Kubernetes.
+- It wraps one or more containers that share:
+  - Networking (same IP, ports)
+  - Storage volumes
+  - Lifecycle
+Usually, one Pod = one container, unless you need sidecars (e.g., logging or proxy containers).
+Example:
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+  namespace: dev-team
+spec:
+  containers:
+    - name: nginx
+      image: nginx:latest
+      ports:
+        - containerPort: 80
+```
+
+
+## 🔁 3. ReplicaSet — Ensures Pod Availability
+💡 What It Does
+- A ReplicaSet (RS) maintains a stable set of Pod replicas at any given time.
+- If a Pod crashes or a node fails, the ReplicaSet creates a new one automatically.
+However, we rarely create ReplicaSets directly — Deployments manage them for us.
+Example:
+```yaml
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: nginx-rs
+  namespace: dev-team
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+```
+
+
+## 🚀 4. Deployment — Declarative Pod Management
+💡 Why Deployments?
+- A Deployment provides declarative updates for Pods and ReplicaSets.
+- It supports:
+  - Rolling updates
+  - Rollbacks
+  - Versioned deployments
+It’s the most common way to deploy applications in Kubernetes.
+Example:
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deploy
+  namespace: dev-team
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.27
+          ports:
+            - containerPort: 80
+```
+
+Check rollout:
+```bash
+kubectl get deploy -n dev-team
+kubectl rollout status deployment/nginx-deploy -n dev-team
+```
+
+Upgrade image:
+```bash
+kubectl set image deployment/nginx-deploy nginx=nginx:1.28 -n dev-team
+```
+
+Rollback:
+```bash
+kubectl rollout undo deployment/nginx-deploy -n dev-team
+```
+
+
+# 🌐 Kubernetes Service — The Networking Backbone  
+
+When Pods come and go (because of scaling, crashes, or updates), their **IP addresses change dynamically**.  
+To make sure clients can still reach your application reliably, **Kubernetes Service** provides a **stable networking endpoint** that routes traffic to the right Pods.
+
+---
+
+## 💡 What is a Service?
+
+> A **Service** is a Kubernetes abstraction that defines a stable, logical set of Pods and a policy by which to access them.
+
+- Provides a **stable DNS name** and **IP address** (called `ClusterIP`)
+- Uses **labels & selectors** to automatically discover target Pods
+- Handles **load balancing** among Pods
+
+---
+
+## 🧩 Basic Example
+Let’s say you deployed 3 replicas of an NGINX Pod:
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deploy
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+          ports:
+            - containerPort: 80
+```
+Now, you want to expose these Pods inside the cluster:
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+```
+## 🎯 What happens:
+- Service nginx-service gets a fixed ClusterIP (say 10.96.0.12).
+- Requests to this IP (or DNS nginx-service.default.svc.cluster.local) will be load balanced across all Pods with label app=nginx.
+
+## ⚙️ How Services Work (Under the Hood)
+- Selector — Matches Pods based on labels.
+- Endpoints Object — Tracks IPs of the matched Pods.
+- kube-proxy — Updates iptables/ipvs rules on each Node to route traffic.
+- CoreDNS — Provides a DNS name for every Service.
+
+## 🔗 Kubernetes Endpoints — The Bridge Between Services and Pods
+When you create a **Service**, Kubernetes automatically creates a corresponding **Endpoints** object that holds the **IP addresses of the Pods** matching the Service’s selector.
+
+Think of it as the **glue** that connects:
+> **Service (stable virtual IP)** → **Pods (real, changing IPs)**
+```bash
+kubectl get endpoints myapp-svc
+```
+
+## 🧱 Types of Services
+1️⃣ ClusterIP (default)
+- Exposes the Service internally within the cluster.
+- Not accessible externally.
+- Default service type.
+```yaml
+type: ClusterIP
+```
+✅ Use case: Internal microservice communication.
+
+2️⃣ NodePort
+- Exposes the Service on each Node’s IP at a static port (30000–32767).
+- Automatically creates a ClusterIP behind the scenes.
+- Accessible via NodeIP:NodePort.
+```yaml
+type: NodePort
+ports:
+  - port: 80
+    targetPort: 80
+    nodePort: 31080
+```
+targetPort => PodPort
+port => servicePort
+nodePort => nodePort
+
+How to access?
+curl <pod-ip>:targetPort
+curl <service-ip>:port
+curl <node-ip.:nodePort
+
+✅ Use case: Accessing apps externally for testing or simple setups.
+
+<img width="1067" height="449" alt="image" src="https://github.com/user-attachments/assets/9629a58c-3524-4ec0-83d9-180238986b2b" />
+
+
+3️⃣ LoadBalancer
+- Exposes the Service externally using a cloud provider’s Load Balancer.
+- Automatically provisions an external IP.
+- Internally creates both NodePort and ClusterIP services.
+```yaml
+type: LoadBalancer
+ports:
+  - port: 80
+    targetPort: 80
+```
+✅ Use case: Publicly accessible apps on managed clusters (EKS, AKS, GKE).
+
+
+4️⃣ ExternalName
+Maps a Service to an external DNS name — no selector, no endpoints.
+```yaml
+type: ExternalName
+externalName: api.externalservice.com
+```
+✅ Use case: Connect K8s workloads to external APIs or legacy systems.
+
+
+5️⃣ Headless Service
+- Special Service without a ClusterIP (clusterIP: None).
+- DNS returns Pod IPs directly.
+- No load balancing — client decides.
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mydb
+spec:
+  clusterIP: None
+  selector:
+    app: mysql
+  ports:
+    - port: 3306
+```
+✅ Use case: StatefulSets (MySQL, Cassandra, etc.)
+
+## 🕸️ Traffic Flow Visualization (Mermaid Diagram)
+```mermaid
+flowchart LR
+    subgraph User
+        A[🌐 Browser]
+    end
+
+    subgraph Kubernetes_Cluster
+        B[LoadBalancer Service]
+        C[NodePort Service]
+        D[ClusterIP Service]
+        E[Pod 1]
+        F[Pod 2]
+        G[Pod 3]
+    end
+
+    A -->|External IP| B
+    B -->|NodePort (30080)| C
+    C -->|ClusterIP (10.96.x.x)| D
+    D -->|Load Balancing| E & F & G
+```
+## Important commands
+```bash
+# List all services
+kubectl get svc
+
+# Describe service in detail
+kubectl describe svc nginx-service
+
+# Check which Pods are targeted
+kubectl get endpoints nginx-service
+```
+
+**Note:** When you define multiple key-value pairs in a Service’s `spec.selector`, **only the Pods matching *all* of those labels** will be linked to that Service.
+
+
+
+
+
 
 
 
