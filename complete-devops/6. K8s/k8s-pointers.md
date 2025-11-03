@@ -647,24 +647,22 @@ spec:
 
 ## 🕸️ Traffic Flow Visualization (Mermaid Diagram)
 ```mermaid
-flowchart LR
-    subgraph User
-        A[🌐 Browser]
+flowchart TD
+    A[Client / User] -->|DNS or ClusterIP| B[Service]
+    B -->|Forwards request to| C[Endpoints Object]
+    C -->|Maps to Pod IPs| D[Pods with matching labels]
+
+    subgraph Types of Service
+        S1[ClusterIP<br/>Internal-only access]
+        S2[NodePort<br/>Exposes via Node's IP:Port]
+        S3[LoadBalancer<br/>External access via Cloud LB]
+        S4[ExternalName<br/>Maps to external DNS]
     end
 
-    subgraph Kubernetes_Cluster
-        B[LoadBalancer Service]
-        C[NodePort Service]
-        D[ClusterIP Service]
-        E[Pod 1]
-        F[Pod 2]
-        G[Pod 3]
-    end
-
-    A -->|External IP| B
-    B -->|NodePort (30080)| C
-    C -->|ClusterIP (10.96.x.x)| D
-    D -->|Load Balancing| E & F & G
+    B --> S1
+    B --> S2
+    B --> S3
+    B --> S4
 
 ```
 ## Important commands
@@ -680,6 +678,7 @@ kubectl get endpoints nginx-service
 ```
 
 **Note:** When you define multiple key-value pairs in a Service’s `spec.selector`, **only the Pods matching *all* of those labels** will be linked to that Service.
+
 
 
 
