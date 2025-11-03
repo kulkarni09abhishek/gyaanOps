@@ -665,6 +665,7 @@ flowchart LR
     B -->|NodePort (30080)| C
     C -->|ClusterIP (10.96.x.x)| D
     D -->|Load Balancing| E & F & G
+
 ```
 ## Important commands
 ```bash
@@ -679,6 +680,7 @@ kubectl get endpoints nginx-service
 ```
 
 **Note:** When you define multiple key-value pairs in a Service’s `spec.selector`, **only the Pods matching *all* of those labels** will be linked to that Service.
+
 
 
 
