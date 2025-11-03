@@ -680,9 +680,97 @@ kubectl get endpoints nginx-service
 **Note:** When you define multiple key-value pairs in a Service’s `spec.selector`, **only the Pods matching *all* of those labels** will be linked to that Service.
 
 
+# 🌀 Rolling Updates in Kubernetes
+🎯 Purpose
+A Rolling Update ensures zero downtime while updating your application version (for example, updating an image tag or config in a Deployment).
+Kubernetes doesn’t kill all Pods at once — instead, it gradually replaces old Pods with new ones while keeping the app available.
+
+## ⚙️ Workflow of Rolling Update
+Let’s assume you have a Deployment managing 4 replicas of nginx:1.25, and you update it to nginx:1.26.
+```baah
+kubectl set image deployment/nginx-deploy nginx=nginx:1.26
+```
+Now Kubernetes does this behind the scenes:
+1️⃣ New ReplicaSet Created
+- Old RS → nginx:1.25
+- New RS → nginx:1.26
+
+2️⃣ Gradual Replacement Begins
+- Kubernetes creates a few new Pods (based on maxSurge)
+- Deletes the same number of old Pods (based on maxUnavailable)
+Continues this process until all Pods run the new version
+
+3️⃣ Old ReplicaSet Retained (Scaled Down)
+K8s keeps the old RS with replicas=0 (for quick rollback)
+
+## 🧮 RollingUpdate Strategy Parameters
+Defined inside your Deployment manifest:
+```yaml
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 25%
+    maxUnavailable: 25%
+```
+
+| Parameter          | Meaning                                                                         |
+| ------------------ | ------------------------------------------------------------------------------- |
+| **maxSurge**       | How many extra Pods (beyond desired replicas) can be created during the update. |
+| **maxUnavailable** | How many Pods can be unavailable at once during the update.                     |
+
+
+Example:
+If replicas: 4,
+maxSurge: 25% → 1 extra Pod (total 5 temporarily)
+maxUnavailable: 25% → 1 Pod can be down
+So, it replaces 1 old Pod → 1 new Pod at a time.
+
+## 📊 Monitoring Rollout
+| Command                                           | Description                        |
+| ------------------------------------------------- | ---------------------------------- |
+| `kubectl rollout status deployment/nginx-deploy`  | Watch live update progress         |
+| `kubectl rollout history deployment/nginx-deploy` | View old ReplicaSets and revisions |
+| `kubectl rollout undo deployment/nginx-deploy`    | Roll back to previous version      |
+
+
+💡 Diagram: Rolling Update Flow
+```mermadi
+flowchart TD
+    A[Deployment] --> B[Old ReplicaSet v1 (nginx:1.25)]
+    A --> C[New ReplicaSet v2 (nginx:1.26)]
+    B -->|Pods gradually terminated| D[Old Pods 🟥]
+    C -->|Pods gradually created| E[New Pods 🟩]
+    E --> F[Steady State ✅]
+```
 
 
 
+## 📈 Scaling in Deployments
+Scaling defines how many Pod replicas your Deployment maintains.
+1️⃣ Manual Scaling
+```bash
+kubectl scale deployment nginx-deploy --replicas=6
+```
+Creates or deletes Pods to reach 6 replicas.
+The associated ReplicaSet ensures exactly that number is running.
+
+2️⃣ Horizontal Pod Autoscaler (HPA)
+Automatically adjusts replicas based on CPU/memory utilization:
+```bash
+kubectl autoscale deployment nginx-deploy --min=3 --max=10 --cpu-percent=75
+```
+HPA checks metrics from the metrics-server and updates the Deployment replicas dynamically.
+
+3️⃣ Vertical Pod Autoscaler (VPA)
+Adjusts Pod resource requests/limits (CPU, memory) automatically — more advanced, used in performance-critical systems.
+
+## 🚑 How to Recover from a Failed Rollout
+| Action                           | Command                                           | Purpose                                                  |
+| -------------------------------- | ------------------------------------------------- | -------------------------------------------------------- |
+| Check rollout status             | `kubectl rollout status deployment/nginx-deploy`  | Shows if rollout is stuck                                |
+| Check Pod issues                 | `kubectl describe pods` / `kubectl logs <pod>`    | Find root cause (CrashLoopBackOff, ImagePullError, etc.) |
+| Rollback to last working version | `kubectl rollout undo deployment/nginx-deploy`    | Instantly restores previous ReplicaSet                   |
+| Verify rollback                  | `kubectl rollout history deployment/nginx-deploy` | Shows revision history                                   |
 
 
 
