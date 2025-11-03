@@ -869,11 +869,203 @@ spec:
 kubectl rollout restart => it restarts all Pods in the Deployment — without changing anything in the manifest.
 **“Hey, recreate my Pods with the exact same spec — I just need them refreshed.”**
 
+# 🧱 Kubernetes DaemonSets
+## 💡 What Is a DaemonSet?
+
+A **DaemonSet** ensures that **a specific Pod runs on every (or selected) node** in your cluster.
+
+Think of it as:  
+> “One Pod per Node, automatically managed by Kubernetes.”
+
+- When new nodes join the cluster → DaemonSet automatically schedules Pods there.  
+- When nodes are removed → their Pods are cleaned up automatically.
+
+---
+
+## 🧰 Typical Use Cases
+
+| Use Case | Description |
+|-----------|-------------|
+| 🪶 **Node Monitoring** | Run agents like Prometheus Node Exporter or Datadog Agent on all nodes |
+| 📡 **Logging** | Deploy Fluentd or Filebeat to collect node logs |
+| 🔐 **Security** | Run Falco or antivirus scanners for runtime protection |
+| 🌐 **Networking** | Install network plugins like Calico, Flannel, or Cilium |
+| 💾 **Storage** | Deploy CSI node plugins or disk management agents |
 
 
+---
+
+## ⚙️ How It Works
+
+1. You define a DaemonSet manifest (like a Deployment).
+2. The **DaemonSet controller** (inside the controller-manager) continuously watches nodes.
+3. For each node:
+   - If the Pod is missing → it creates one.
+   - If the Pod exists but is outdated → it updates it.
+   - If the node is removed → its DaemonSet Pod is deleted automatically.
+
+> Essentially, it keeps **1 Pod per node**, unless configured otherwise.
+
+---
+
+## 🧩 Example — DaemonSet Manifest
+```yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-monitor
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: node-monitor
+  template:
+    metadata:
+      labels:
+        app: node-monitor
+    spec:
+      containers:
+      - name: node-monitor
+        image: prom/node-exporter:latest
+        ports:
+        - containerPort: 9100
+```
+
+## 🧠 Node Selection Control
+You can control where DaemonSet Pods are scheduled using:
+| Feature        | Purpose                                          | Example                                                                            |
+| -------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `nodeSelector` | Run only on nodes with certain labels            | `nodeSelector: { disktype: ssd }`                                                  |
+| `affinity`     | More complex scheduling logic                    | Prefer nodes with GPU                                                              |
+| `tolerations`  | Run on tainted nodes (like master/control-plane) | `tolerations: [ { key: "node-role.kubernetes.io/master", effect: "NoSchedule" } ]` |
+
+Example:
+```yaml
+spec:
+  template:
+    spec:
+      nodeSelector:
+        disktype: ssd
+      tolerations:
+      - key: "node-role.kubernetes.io/control-plane"
+        effect: "NoSchedule"
+```
+
+## ⚠️ Key Points to Remember
+- DaemonSets ensure one Pod per node (unless customized).
+- Perfect for infrastructure-level agents, not apps.
+- Controlled via DaemonSet controller inside kube-controller-manager.
+- Can target specific nodes using nodeSelector, affinity, or tolerations.
+- Rolling updates are supported (if configured).
+
+## 🧾 Quick Commands 
+| Command                                    | Description             |
+| ------------------------------------------ | ----------------------- |
+| `kubectl get daemonset -A`                 | List all DaemonSets     |
+| `kubectl describe daemonset <name>`        | Detailed info           |
+| `kubectl rollout status daemonset/<name>`  | Check update progress   |
+| `kubectl rollout history daemonset/<name>` | View previous revisions |
 
 
+# ⚙️ Kubernetes Jobs
 
+---
+
+## 🧩 What is a Job?
+
+A **Job** in Kubernetes is a controller that ensures **a Pod runs to completion** — unlike Deployments or DaemonSets which keep Pods running continuously.
+
+👉 Use a **Job** when you want to run **a task once or a fixed number of times** — for example:
+- Running a **database migration**
+- Sending a **batch email**
+- Performing a **backup task**
+- Running **data processing scripts**
+
+---
+
+## ⚙️ How It Works
+
+1. You define a Job manifest specifying which container image and command to run.
+2. The Job controller creates one or more Pods to perform the task.
+3. Once the Pods complete successfully (exit code 0):
+   - The Job is marked as **Complete**.
+4. If Pods fail, the Job retries based on its **`backoffLimit`**.
+
+---
+
+## 🧠 Job Example — Run Once
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: parallel-job
+spec:
+  completions: 5
+  parallelism: 2
+  template:
+    spec:
+      containers:
+      - name: worker
+        image: busybox
+        command: ["echo", "Processing data..."]
+      restartPolicy: Never
+   backoffLimit: 4
+```
+🧩 Key Fields:
+| Field          | Description                            |
+| -------------- | -------------------------------------- |
+| `completions`  | Total number of successful Pods to run |
+| `parallelism`  | Number of Pods to run simultaneously   |
+| `backoffLimit` | Retry attempts on failure              |
+
+
+## 📊 Job Lifecycle
+1. Job created → spawns one or more Pods.
+2. Pods run → do their task.
+3. On success → Job marked as Complete.
+4. On repeated failure → Job marked as Failed.
+Check status with:
+```bash
+kubectl get jobs
+kubectl describe job hello-job
+```
+
+# ⏰ Kubernetes CronJob — Scheduled Jobs in Kubernetes
+A CronJob is a higher-level controller that creates Jobs on a time-based schedule, just like a Linux cron.
+It runs a Job at a specific time or interval — daily, hourly, weekly, etc.
+## 🕒 CronJob Example — Every Minute
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: hello-cron
+spec:
+  schedule: "*/1 * * * *"  # Every 1 minute
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: hello
+            image: busybox
+            command: ["echo", "Hello from CronJob at $(date)!"]
+          restartPolicy: OnFailure
+```
+
+🔍 Breakdown:
+- schedule → standard cron format (minute hour day month weekday)
+- jobTemplate → template for the Job that will run on each schedule
+- restartPolicy: OnFailure → restarts failed Pods
+- Each run of the CronJob creates a new Job object
+
+
+⚠️ Key Points to Remember
+- Jobs → run tasks to completion (like scripts or data processing).
+- CronJobs → schedule those Jobs to run periodically.
+- Both are batch-oriented, not long-running like Deployments.
+- You can control retries, concurrency, and cleanup behavior.
+- Each CronJob run creates a separate Job object.
 
 
 
