@@ -45,10 +45,14 @@ Used for web communication between browsers and servers.
 ## 🌍 ISP (Internet Service Provider)
 An **ISP** connects users to the internet.  
 Your device connects → ISP → Internet backbone → Data travels → Response returns via the **last mile** (ISP to your home).
+<img width="750" height="328" alt="image" src="https://github.com/user-attachments/assets/62b99dac-3367-49a5-92f8-66b10d08e32f" />
+
 
 ### NAT (Network Address Translation)
 Allows multiple devices on a private network to share a single public IP address.  
 Adds a layer of security and conserves IPv4 addresses.
+<img width="1024" height="576" alt="image" src="https://github.com/user-attachments/assets/c84c98db-a5e1-4506-a8a3-f76791cf4181" />
+
 
 ---
 
