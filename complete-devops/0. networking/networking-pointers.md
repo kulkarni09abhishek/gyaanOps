@@ -233,3 +233,9 @@ When you send a WhatsApp message:
 | Signal | 1 | Bits |
 
 ---
+
+![WhatsApp Image 2025-11-21 at 5 06 18 PM](https://github.com/user-attachments/assets/553cf714-3793-4691-a4b4-a155d4db384c)
+
+![WhatsApp Image 2025-11-21 at 5 06 46 PM](https://github.com/user-attachments/assets/f18e21d9-b765-4260-be87-4ad158179c76)
+
+
