@@ -204,8 +204,8 @@ Used to test network functionality within your own computer (packets never leave
 
 🧠 How It Works
 When you send a packet to the loopback address (127.0.0.1):
-	• The packet never leaves your computer.
-	• It is handled entirely by the operating system’s network stack.
+• The packet never leaves your computer.
+• It is handled entirely by the operating system’s network stack.
 This helps you test local network functionality (like sockets, web servers, APIs) without needing an external network or internet.
 
 **Interview Tip:**  
