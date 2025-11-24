@@ -238,4 +238,6 @@ When you send a WhatsApp message:
 
 ![WhatsApp Image 2025-11-21 at 5 06 46 PM](https://github.com/user-attachments/assets/f18e21d9-b765-4260-be87-4ad158179c76)
 
+IP address range -
+<img width="771" height="314" alt="image" src="https://github.com/user-attachments/assets/fc5d638b-3f0a-4b61-8265-a20b3228c332" />
 
