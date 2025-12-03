@@ -45,10 +45,14 @@ Used for web communication between browsers and servers.
 ## 🌍 ISP (Internet Service Provider)
 An **ISP** connects users to the internet.  
 Your device connects → ISP → Internet backbone → Data travels → Response returns via the **last mile** (ISP to your home).
+<img width="750" height="328" alt="image" src="https://github.com/user-attachments/assets/62b99dac-3367-49a5-92f8-66b10d08e32f" />
+
 
 ### NAT (Network Address Translation)
 Allows multiple devices on a private network to share a single public IP address.  
 Adds a layer of security and conserves IPv4 addresses.
+<img width="1024" height="576" alt="image" src="https://github.com/user-attachments/assets/c84c98db-a5e1-4506-a8a3-f76791cf4181" />
+
 
 ---
 
@@ -200,8 +204,8 @@ Used to test network functionality within your own computer (packets never leave
 
 🧠 How It Works
 When you send a packet to the loopback address (127.0.0.1):
-	• The packet never leaves your computer.
-	• It is handled entirely by the operating system’s network stack.
+• The packet never leaves your computer.
+• It is handled entirely by the operating system’s network stack.
 This helps you test local network functionality (like sockets, web servers, APIs) without needing an external network or internet.
 
 **Interview Tip:**  
@@ -229,3 +233,11 @@ When you send a WhatsApp message:
 | Signal | 1 | Bits |
 
 ---
+
+![WhatsApp Image 2025-11-21 at 5 06 18 PM](https://github.com/user-attachments/assets/553cf714-3793-4691-a4b4-a155d4db384c)
+
+![WhatsApp Image 2025-11-21 at 5 06 46 PM](https://github.com/user-attachments/assets/f18e21d9-b765-4260-be87-4ad158179c76)
+
+IP address range -
+<img width="771" height="314" alt="image" src="https://github.com/user-attachments/assets/fc5d638b-3f0a-4b61-8265-a20b3228c332" />
+
