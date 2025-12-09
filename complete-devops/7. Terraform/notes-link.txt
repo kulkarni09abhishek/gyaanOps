@@ -1,1 +1,0 @@
-https://learning-ocean.com/tutorials/terraform
