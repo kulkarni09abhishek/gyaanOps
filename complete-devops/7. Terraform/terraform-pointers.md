@@ -164,7 +164,7 @@ Resource ... has prevent_destroy set, so it cannot be destroyed
 3. ignore_changes
 Instructs Terraform to ignore specific attributes even if they drift from the configuration.
 Example
-``hcl
+```hcl
 lifecycle {
   ignore_changes = [ instance_type ]
 }
