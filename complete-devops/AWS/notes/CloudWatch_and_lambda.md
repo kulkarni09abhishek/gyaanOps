@@ -221,6 +221,34 @@ Cold starts occur when:
 
 **Note** - AWS does NOT provide any guaranteed or documented time for how long a Lambda execution environment stays warm.
 
+---
+
+# AWS Lambda – Environment Variables
+
+## What Are Lambda Environment Variables?
+Environment variables are **key/value pairs** stored in Lambda configuration that your function can access at runtime.
+
+They allow you to:
+- Store configuration values
+- Separate config from code
+- Avoid hardcoding parameters
+- Make deployments environment-specific (dev/test/prod)
+
+Example (Python):
+```python
+import os
+
+db_host = os.environ['DB_HOST']
+api_key = os.environ['API_KEY']
+```
+
+Common Use Cases for Lambda Environment Variables
+✅ 1. Database Connection Details
+✅ 2. API Keys and Endpoints
+✅ 3. Environment Identification
+
+
+
 
 
 
