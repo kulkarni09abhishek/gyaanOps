@@ -42,7 +42,7 @@ echo "Today's date is: $current_date"
 You can assign user input to a variable using read.
 
 ```bash
-echo "Enter your name:"
+echo "Enter your name: "
 read username
 echo "Hello, $username!"
 ```
@@ -65,10 +65,8 @@ unset variable_name
 
 
 ## 🔒 8. Constant Variables (Read-only)
-To delete a variable from memory:
-
 ```bash
-readonly variable_name
+# readonly variable_name or readonly variable_name=value
 
 readonly pi=3.14159
 pi=3.14  # ❌ Error: pi: is read-only variable
@@ -105,7 +103,7 @@ fruits=("Apple" "Banana" "Mango" "Orange")
 
 ## Array Elements operations
 ```bash
-${array_name[index]}
+# ${array_name[index]}
 
 echo ${fruits[0]}   # Apple
 echo ${fruits[2]}   # Mango
@@ -178,7 +176,7 @@ name="Nancy Wheeler"
 greeting='Welcome to Shell Scripting!'
 ```
 
-✅ Use double quotes if your string contains variables or commands that need expansion.
+✅ Use double quotes if your string contains variables or commands that need expansion.  
 ❌ Single quotes preserve the literal value (no variable or command substitution).
 
 
@@ -703,8 +701,7 @@ atrm <job_id>
 
 ## 📘 1. What is `cron`?
 
-`cron` is a Linux **job scheduler** that automatically runs commands or scripts **at fixed intervals** —  
-such as every minute, hour, day, week, or month.
+`cron` is a Linux **job scheduler** that automatically runs commands or scripts **at fixed intervals** such as every minute, hour, day, week, or month.
 
 It is ideal for **repetitive automation tasks** like:
 - Regular backups  
